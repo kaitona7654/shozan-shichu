@@ -250,9 +250,19 @@ with st.form("nikkan_form"):
     with col3:
         day = st.number_input("日", min_value=1, max_value=31, value=1, step=1)
 
+    hour_options = ["不明・入力しない"] + [f"{h}時台" for h in range(24)]
+    hour_label = st.selectbox(
+        "出生時刻（任意）",
+        hour_options,
+        index=0,
+        help="時刻が分かると「時柱」まで含めた四柱（生まれ持った4本の柱）が表示されます",
+    )
+    hour = None if hour_label == "不明・入力しない" else int(hour_label.replace("時台", ""))
+
     st.markdown(
-        "<small>※ 西暦（新暦）でご入力ください。出生時刻は不要、性別も不要。"
-        "**生年月日だけで、あなたの本質的なタイプが分かります**。</small>",
+        "<small>※ 西暦（新暦）でご入力ください。性別は不要。"
+        "**生年月日だけでも、あなたの本質的なタイプが分かります**。"
+        "出生時刻も入力すると、四柱（年柱・月柱・日柱・時柱）の完全表示が追加されます。</small>",
         unsafe_allow_html=True,
     )
 
@@ -264,7 +274,7 @@ with st.form("nikkan_form"):
 # ----------------------------------------------------------------------
 if submitted:
     try:
-        m = calc_meishiki(int(year), int(month), int(day))
+        m = calc_meishiki(int(year), int(month), int(day), hour)
         nikkan = m.nikkan
         info = NIKKAN_DATA[nikkan]
     except Exception as e:
@@ -303,6 +313,32 @@ if submitted:
     with col_ng:
         st.markdown("**向かない環境** 🔴")
         st.markdown(info["ng_jobs"])
+
+    # あなたの四柱（命式）── 時刻入力時は時柱まで、未入力時は三柱
+    st.markdown("### 📜 あなたの四柱（命式）")
+    if hour is None:
+        st.caption("出生時刻を入力すると、4本目の柱「時柱」も表示されます")
+    pillar_cols = st.columns(len(m.pillars))
+    PILLAR_MEANING = {
+        "年柱": "先祖・幼少期",
+        "月柱": "仕事・人生の中軸",
+        "日柱": "自分自身",
+        "時柱": "晩年・潜在才能",
+    }
+    for i, p in enumerate(m.pillars):
+        with pillar_cols[i]:
+            st.markdown(
+                f"""
+                <div style='text-align:center; padding:12px 4px; background:#f5f0e8;
+                            border-radius:8px; border:1px solid #d9cfc0;'>
+                    <div style='font-size:0.8em; color:#888;'>{p.name}</div>
+                    <div style='font-size:2em; font-weight:bold; color:#2c2c2c;
+                                font-family: "Yu Mincho", serif;'>{p.tengan}{p.chishi}</div>
+                    <div style='font-size:0.7em; color:#999;'>{PILLAR_MEANING.get(p.name, "")}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     # CTA：もっと深く見たい
     st.markdown("---")
