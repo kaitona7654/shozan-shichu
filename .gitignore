@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+cache/
+cache_naming/
+.streamlit/secrets.toml
+
+# 個人情報を含むファイルは絶対にコミットしない
+articles/01_井が中井家3代続く理由.md
+articles/reference_judgment_kaito.md
+tests/reference_judgment_kaito.md
+*.private.md
+
+# OS固有
+.DS_Store
+Thumbs.db
