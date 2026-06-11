@@ -198,25 +198,61 @@ st.set_page_config(
 
 
 # ----------------------------------------------------------------------
-# ブラウザに「日本語ページ」と宣言（Chrome自動翻訳の誤動作防止）
-# Streamlitはlang属性を設定しないため、Chromeが外国語ページと誤認し
-# 日本語→日本語の再翻訳で文言が壊れる（診断→縦断など）のを防ぐ
+# ブラウザに「日本語ページ」と宣言（Chrome自動翻訳の誤動作防止）＋
+# Google Analytics 4 計測タグ（ページビュー・ユーザー数・流入元）
+# Streamlitはiframe内でコードが動くため、親ドキュメントに注入する
 # ----------------------------------------------------------------------
 import streamlit.components.v1 as components
 
+GA_MEASUREMENT_ID = "G-37X4KD65XS"
+
 components.html(
-    """
+    f"""
     <script>
       const doc = window.parent.document;
+      // 日本語ページ宣言（Chrome自動翻訳の誤動作防止）
       doc.documentElement.lang = 'ja';
-      const meta = doc.createElement('meta');
-      meta.name = 'google';
-      meta.content = 'notranslate';
-      doc.head.appendChild(meta);
+      if (!doc.querySelector('meta[name="google"][content="notranslate"]')) {{
+        const meta = doc.createElement('meta');
+        meta.name = 'google';
+        meta.content = 'notranslate';
+        doc.head.appendChild(meta);
+      }}
+      // GA4 計測タグ（二重挿入防止つき）
+      if (!doc.getElementById('ga4-script')) {{
+        const s = doc.createElement('script');
+        s.id = 'ga4-script';
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}';
+        doc.head.appendChild(s);
+        const inline = doc.createElement('script');
+        inline.textContent = "window.dataLayer = window.dataLayer || [];" +
+          "function gtag(){{dataLayer.push(arguments);}}" +
+          "gtag('js', new Date());" +
+          "gtag('config', '{GA_MEASUREMENT_ID}');";
+        doc.head.appendChild(inline);
+      }}
     </script>
     """,
     height=0,
 )
+
+
+def track_event(event_name: str, **params):
+    """GA4にカスタムイベントを送信する（診断実行回数などの計測用）。"""
+    import json
+    params_json = json.dumps(params, ensure_ascii=False)
+    components.html(
+        f"""
+        <script>
+          const w = window.parent;
+          if (typeof w.gtag === 'function') {{
+            w.gtag('event', '{event_name}', {params_json});
+          }}
+        </script>
+        """,
+        height=0,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -302,6 +338,9 @@ if submitted:
     except Exception as e:
         st.error(f"計算に失敗しました：{e}")
         st.stop()
+
+    # GA4: 診断実行イベント（何回診断されたか・どの日干が多いかを計測）
+    track_event("diagnosis", nikkan=nikkan, with_hour=hour is not None)
 
     # 結果カード
     st.markdown(

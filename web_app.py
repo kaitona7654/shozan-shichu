@@ -43,19 +43,36 @@ st.set_page_config(
 
 
 # ----------------------------------------------------------------------
-# ブラウザに「日本語ページ」と宣言（Chrome自動翻訳の誤動作防止）
+# ブラウザに「日本語ページ」と宣言（Chrome自動翻訳の誤動作防止）＋ GA4計測
 # ----------------------------------------------------------------------
 import streamlit.components.v1 as components
 
+GA_MEASUREMENT_ID = "G-37X4KD65XS"
+
 components.html(
-    """
+    f"""
     <script>
       const doc = window.parent.document;
       doc.documentElement.lang = 'ja';
-      const meta = doc.createElement('meta');
-      meta.name = 'google';
-      meta.content = 'notranslate';
-      doc.head.appendChild(meta);
+      if (!doc.querySelector('meta[name="google"][content="notranslate"]')) {{
+        const meta = doc.createElement('meta');
+        meta.name = 'google';
+        meta.content = 'notranslate';
+        doc.head.appendChild(meta);
+      }}
+      if (!doc.getElementById('ga4-script')) {{
+        const s = doc.createElement('script');
+        s.id = 'ga4-script';
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}';
+        doc.head.appendChild(s);
+        const inline = doc.createElement('script');
+        inline.textContent = "window.dataLayer = window.dataLayer || [];" +
+          "function gtag(){{dataLayer.push(arguments);}}" +
+          "gtag('js', new Date());" +
+          "gtag('config', '{GA_MEASUREMENT_ID}');";
+        doc.head.appendChild(inline);
+      }}
     </script>
     """,
     height=0,
