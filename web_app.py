@@ -43,6 +43,26 @@ st.set_page_config(
 
 
 # ----------------------------------------------------------------------
+# ブラウザに「日本語ページ」と宣言（Chrome自動翻訳の誤動作防止）
+# ----------------------------------------------------------------------
+import streamlit.components.v1 as components
+
+components.html(
+    """
+    <script>
+      const doc = window.parent.document;
+      doc.documentElement.lang = 'ja';
+      const meta = doc.createElement('meta');
+      meta.name = 'google';
+      meta.content = 'notranslate';
+      doc.head.appendChild(meta);
+    </script>
+    """,
+    height=0,
+)
+
+
+# ----------------------------------------------------------------------
 # CSS（雰囲気作り）
 # ----------------------------------------------------------------------
 st.markdown(
