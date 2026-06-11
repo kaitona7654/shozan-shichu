@@ -373,12 +373,39 @@ if submitted:
         "▶ **個別鑑定の受付**：noteメッセージから（https://note.com/great_thyme4680）"
     )
 
-    # シェア促進
+    # シェア促進（ワンクリックでX・LINEに投稿）
+    import urllib.parse
+
     st.markdown("---")
-    st.markdown("### 📢 友達にもシェアしよう")
-    share_text = f"私の日干は『{nikkan}（{info['title']}）』でした！{info['emoji']}　{info['essence']}　あなたは何タイプ？"
-    st.code(share_text, language=None)
-    st.caption("☝️ コピーして X や LINE で友達に教えてあげてください")
+    st.markdown("### 📢 結果をシェアしよう")
+
+    app_url = "https://shozan-nikkan.streamlit.app"
+    share_text = (
+        f"私の日干は『{nikkan}（{info['title']}）』でした！{info['emoji']}\n"
+        f"{info['essence']}\n\n"
+        f"あなたは何タイプ？\n"
+        f"#日干10タイプ診断 #四柱推命"
+    )
+    tweet_url = (
+        "https://twitter.com/intent/tweet"
+        f"?text={urllib.parse.quote(share_text)}"
+        f"&url={urllib.parse.quote(app_url)}"
+    )
+    line_url = (
+        "https://social-plugins.line.me/lineit/share"
+        f"?url={urllib.parse.quote(app_url)}"
+        f"&text={urllib.parse.quote(share_text)}"
+    )
+
+    col_x, col_line = st.columns(2)
+    with col_x:
+        st.link_button("𝕏 で結果をポストする", tweet_url, use_container_width=True)
+    with col_line:
+        st.link_button("💬 LINEで友達に送る", line_url, use_container_width=True)
+
+    with st.expander("📋 テキストをコピーしてシェアする"):
+        st.code(f"{share_text}\n{app_url}", language=None)
+        st.caption("☝️ 右上のコピーアイコンでコピーできます")
 
 
 # ----------------------------------------------------------------------
