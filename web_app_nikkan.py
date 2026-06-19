@@ -121,7 +121,7 @@ NIKKAN_DATA = {
     },
     "庚": {
         "emoji": "⚔️",
-        "title": "鋼鉄の人",
+        "title": "刃物の人",
         "gogyo": "陽の金",
         "essence": "鍛え抜かれた刃物。決断力、義理堅さ、武の星、リーダーシップ。",
         "strengths": [
@@ -185,6 +185,21 @@ NIKKAN_DATA = {
     },
 }
 
+# 日干の漢字は小学校で習わない難しい字（戊・己・庚・辛・壬・癸 など）が多いので、
+# 読みがなを添えてやさしく見せる。キャラ画像と揃えて音読み表記にする。
+NIKKAN_YOMI = {
+    "甲": "きのえ",
+    "乙": "きのと",
+    "丙": "ひのえ",
+    "丁": "ひのと",
+    "戊": "つちのえ",
+    "己": "つちのと",
+    "庚": "かのえ",
+    "辛": "かのと",
+    "壬": "みずのえ",
+    "癸": "みずのと",
+}
+
 
 # ----------------------------------------------------------------------
 # ページ設定
@@ -209,9 +224,36 @@ GA_MEASUREMENT_ID = "G-37X4KD65XS"
 components.html(
     f"""
     <script>
-      const doc = window.parent.document;
+      const w = window.parent;
+      const doc = w.document;
+
+      // --- React × Google翻訳 クラッシュ防止パッチ ---
+      // 翻訳がテキストノードを<font>等で包み替えると、React(Streamlit)の再描画時に
+      // insertBefore/removeChild が「対象が子でない」NotFoundError でアプリ全体を落とす。
+      // これらのDOMメソッドを安全化し、翻訳が効いていても落ちないようにする（定番の回避策）。
+      if (w.Node && w.Node.prototype && !w.__nodePatchApplied) {{
+        w.__nodePatchApplied = true;
+        const _insertBefore = w.Node.prototype.insertBefore;
+        w.Node.prototype.insertBefore = function (newNode, referenceNode) {{
+          if (referenceNode && referenceNode.parentNode !== this) {{
+            return this.appendChild(newNode);
+          }}
+          return _insertBefore.call(this, newNode, referenceNode);
+        }};
+        const _removeChild = w.Node.prototype.removeChild;
+        w.Node.prototype.removeChild = function (child) {{
+          if (child && child.parentNode !== this) {{
+            return child;
+          }}
+          return _removeChild.call(this, child);
+        }};
+      }}
+
       // 日本語ページ宣言（Chrome自動翻訳の誤動作防止）
+      // translate="no" は Chrome 翻訳を最も強く抑止する属性。lang=ja と併用。
       doc.documentElement.lang = 'ja';
+      doc.documentElement.setAttribute('translate', 'no');
+      doc.documentElement.classList.add('notranslate');
       if (!doc.querySelector('meta[name="google"][content="notranslate"]')) {{
         const meta = doc.createElement('meta');
         meta.name = 'google';
@@ -342,13 +384,21 @@ if submitted:
     # GA4: 診断実行イベント（何回診断されたか・どの日干が多いかを計測）
     track_event("diagnosis", nikkan=nikkan, with_hour=hour is not None)
 
+    # タイプ別キャラクター（中央に表示）
+    from pathlib import Path as _Path
+    _char = _Path(__file__).parent / "assets" / "characters" / f"char_{nikkan}.png"
+    if _char.exists():
+        # 横長バナー（16:9）なので全幅で表示
+        st.image(str(_char), use_container_width=True)
+
     # 結果カード
     st.markdown(
         f"""
-        <div class='result-card' style='background-color: {info["color"]};'>
+        <div class='result-card notranslate' translate='no' style='background-color: {info["color"]};'>
             <div style='font-size:1.2em; opacity:0.9;'>あなたの日干は</div>
             <div class='result-emoji'>{info["emoji"]}</div>
-            <div class='result-title'>{nikkan}（{info["gogyo"]}）── {info["title"]}</div>
+            <div class='result-title'>{info["title"]}</div>
+            <div style='font-size:0.95em; opacity:0.9; margin-bottom:6px;'>むかしの呼び名：{nikkan}〔{NIKKAN_YOMI[nikkan]}〕・{info["gogyo"][-1]}タイプ</div>
             <div class='result-essence'>{info["essence"]}</div>
         </div>
         """,
@@ -420,7 +470,7 @@ if submitted:
 
     app_url = "https://shozan-nikkan.streamlit.app"
     share_text = (
-        f"私の日干は『{nikkan}（{info['title']}）』でした！{info['emoji']}\n"
+        f"私の日干は『{info['title']}（{nikkan}・{NIKKAN_YOMI[nikkan]}）』でした！{info['emoji']}\n"
         f"{info['essence']}\n\n"
         f"あなたは何タイプ？\n"
         f"#日干10タイプ診断 #四柱推命"
